@@ -3,13 +3,25 @@ Command Line Interface for Pgx Cyp450 Prescriber Agent.
 """
 import argparse
 import csv
-import json
 import sys
+from pathlib import Path
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def _validate_input_path(filepath: str) -> Path:
+    """Validate input file path exists and is within allowed directory."""
+    path = Path(filepath).resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"Input file not found: {filepath}")
+    if not path.is_file():
+        raise ValueError(f"Input path is not a file: {filepath}")
+    if path.suffix.lower() not in ('.csv', '.json'):
+        raise ValueError(f"Unsupported file type '{path.suffix}'. Expected .csv or .json")
+    return path
 
 
 def main(argv=None):
@@ -80,7 +92,8 @@ def main(argv=None):
         return 0
 
     if args.command == "batch":
-        with open(args.input, mode="r", encoding="utf-8-sig") as f:
+        input_path = _validate_input_path(args.input)
+        with open(input_path, mode="r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)

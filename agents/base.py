@@ -8,9 +8,13 @@ import json
 import time
 import hmac
 import hashlib
+import secrets
+import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 PHI_PATTERNS = [
     re.compile(r"\b(?:MRN|mrn)[:#\s-]*\d{4,10}\b", re.IGNORECASE),
@@ -57,7 +61,14 @@ class PHIGuard:
 class AuditTrail:
     """Cryptographic Tamper-Evident HMAC-SHA256 Audit Trail."""
     def __init__(self, secret_key: Optional[str] = None):
-        self.secret_key = (secret_key or os.getenv("AUDIT_SECRET_KEY", "pgx-cyp450-prescriber-agent-master-audit-key-2026")).encode("utf-8")
+        resolved_key = secret_key or os.getenv("AUDIT_SECRET_KEY")
+        if not resolved_key:
+            resolved_key = secrets.token_hex(32)
+            logger.warning(
+                "AUDIT_SECRET_KEY not set; generated ephemeral key. "
+                "Set AUDIT_SECRET_KEY env var for persistent audit integrity across restarts."
+            )
+        self.secret_key = resolved_key.encode("utf-8")
         self.logs: List[Dict[str, Any]] = []
 
     def log(self, actor: str, actor_tier: str, event_type: str, details: Dict[str, Any]) -> Dict[str, Any]:
@@ -86,6 +97,11 @@ class AuditTrail:
         for i, entry in enumerate(self.logs):
             prev = self.logs[i-1]["current_hash"] if i > 0 else "GENESIS_BLOCK_0000000000000000"
             if entry["prev_hash"] != prev:
+                return False
+            # Verify HMAC signature
+            sign_string = f"{entry['audit_id']}|{entry['timestamp']}|{entry['actor']}|{entry['actor_tier']}|{entry['event_type']}|{entry['payload_hash']}|{entry['prev_hash']}"
+            expected_sig = hmac.new(self.secret_key, sign_string.encode("utf-8"), hashlib.sha256).hexdigest()
+            if entry["current_hash"] != expected_sig:
                 return False
         return True
 

@@ -1,8 +1,6 @@
 """
 Prometheus Operational Metrics Exporter for pgx-cyp450-prescriber-agent.
 """
-import time
-from typing import Dict, Any
 
 class SystemMetricsCollector:
     def __init__(self):

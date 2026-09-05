@@ -14,6 +14,7 @@ import datetime
 import json
 import sys
 import uuid
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 
@@ -266,7 +267,14 @@ def main(argv=None):
         return 0
 
     if args.command == "batch":
-        with open(args.input, mode="r", encoding="utf-8-sig") as f:
+        input_path = Path(args.input).resolve()
+        if not input_path.exists():
+            print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+            return 1
+        if not input_path.is_file():
+            print(f"Error: Input path is not a file: {args.input}", file=sys.stderr)
+            return 1
+        with open(input_path, mode="r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
