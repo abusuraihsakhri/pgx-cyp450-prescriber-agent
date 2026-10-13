@@ -78,5 +78,5 @@ class SystemSupervisor:
 
     def query_supervisory_chat(self, query: str) -> str:
         PHIGuard.assert_no_phi(query)
-        prompt = f"Supervisor inquiry for Pgx Cyp450 Prescriber Agent under wwPDB / IUPAC / OpenSMILES / ISAC Standards: {query}"
+        prompt = f"Synthetic metric demonstration, informational only: {query}"
         return self.llm.invoke(prompt)
