@@ -92,8 +92,8 @@ class CPICKnowledgeBase:
                 summary="CYP2C19 poor metabolizers have reduced clopidogrel activation leading to decreased antiplatelet effect and increased cardiovascular event risk.",
                 recommendation="For CYP2C19 poor and intermediate metabolizers, use an alternative antiplatelet agent (prasugrel or ticagrelor) when available.",
                 phenotype_specific_actions={
-                    "PM": "Use prasugrel or ticagrelor. Clopidogrel is contraindicated.",
-                    "IM": "Consider alternative antiplatelet. If clopidogrel used, monitor closely.",
+                    "PM": "Avoid clopidogrel standard dosing where current indication-specific CYP2C19 guidance recommends an alternative; review eligibility for other antiplatelets.",
+                    "IM": "Review indication-specific guidance regarding alternative antiplatelet therapy.",
                     "NM": "Standard dosing appropriate.",
                     "RM": "Standard dosing appropriate.",
                     "UM": "Standard dosing appropriate.",
@@ -117,7 +117,7 @@ class CPICKnowledgeBase:
                 recommendation="Avoid codeine in CYP2D6 poor and ultrarapid metabolizers. Use alternative analgesic.",
                 phenotype_specific_actions={
                     "PM": "No analgesic effect expected. Use morphine or non-opioid alternative.",
-                    "IM": "Reduced efficacy possible. Consider dose increase or alternative.",
+                    "IM": "Reduced efficacy may occur; monitor response and review suitable alternatives with a clinician.",
                     "NM": "Standard dosing appropriate.",
                     "RM": "Standard dosing appropriate.",
                     "UM": "CONTRAINDICATED. Risk of fatal respiratory depression. Use non-codeine analgesic.",
@@ -138,12 +138,12 @@ class CPICKnowledgeBase:
                 evidence_level=EvidenceLevel.LEVEL_1A,
                 actionability=Actionability.HIGH,
                 summary="SLCO1B1 poor function variants increase simvastatin plasma concentration, elevating myopathy risk especially at higher doses.",
-                recommendation="For SLCO1B1 poor function carriers, prescribe lower simvastatin dose (20mg) or use alternative statin.",
+                recommendation="Interpret SLCO1B1 as transporter function, not as a CYP metabolizer phenotype; consult current statin-specific guidance.",
                 phenotype_specific_actions={
-                    "PM": "Max 20mg/day simvastatin. Consider rosuvastatin, pravastatin, or atorvastatin.",
-                    "IM": "Max 40mg/day simvastatin. Monitor for myopathy symptoms.",
-                    "NM": "Standard dosing appropriate.",
-                    "UM": "Standard dosing appropriate.",
+                    "PM": "Not applicable: SLCO1B1 requires transporter function categories; review current guidance.",
+                    "IM": "Not applicable: SLCO1B1 requires transporter function categories; review current guidance.",
+                    "NM": "Not applicable: review actual SLCO1B1 function result.",
+                    "UM": "Not applicable: SLCO1B1 does not use a CYP ultrarapid-metabolizer category.",
                 },
                 references=[
                     "CPIC Guideline for SLCO1B1, ABCG2, and Statins (2022)",
@@ -162,10 +162,10 @@ class CPICKnowledgeBase:
                 summary="CYP2C9 variants affect warfarin metabolism. Poor metabolizers have decreased clearance and increased bleeding risk.",
                 recommendation="Consider CYP2C9 and VKORC1 genotype when initiating warfarin. Use pharmacogenomic dosing algorithms.",
                 phenotype_specific_actions={
-                    "PM": "Reduce initial dose by 25-50%. Increase INR monitoring frequency.",
-                    "IM": "Reduce initial dose by 15-25%. Monitor INR closely.",
+                    "PM": "Use a validated multigene warfarin dosing method and INR monitoring; no fixed percentage is justified by this entry.",
+                    "IM": "Use a validated multigene warfarin dosing method and INR monitoring.",
                     "NM": "Standard dosing with routine INR monitoring.",
-                    "UM": "May require higher doses. Monitor INR closely.",
+                    "UM": "No ultrarapid category is assigned here; review CYP2C9-specific guidance and INR.",
                 },
                 references=[
                     "FDA Table of Pharmacogenomic Biomarkers in Drug Labeling",
@@ -207,10 +207,10 @@ class CPICKnowledgeBase:
                 summary="CYP3A5 expressers metabolize tacrolimus faster, requiring higher doses to achieve target trough concentrations.",
                 recommendation="CYP3A5 expressers should receive 1.5-2x standard starting dose with therapeutic drug monitoring.",
                 phenotype_specific_actions={
-                    "PM": "Standard dose: 0.1 mg/kg/day. Target trough 8-12 ng/mL.",
-                    "IM": "Intermediate dose: 0.15 mg/kg/day. Monitor trough levels.",
-                    "NM": "Higher dose: 0.2 mg/kg/day. Frequent trough monitoring.",
-                    "RM": "Higher dose: 0.2 mg/kg/day. Frequent trough monitoring.",
+                    "PM": "CYP3A5 nonexpresser status requires gene-specific interpretation and therapeutic drug monitoring.",
+                    "IM": "CYP3A5 expresser status requires gene-specific interpretation and therapeutic drug monitoring.",
+                    "NM": "CYP3A5 expresser status requires gene-specific interpretation and therapeutic drug monitoring.",
+                    "RM": "CYP3A5 does not use the CYP2C19 rapid-metabolizer category.",
                 },
                 references=[
                     "CPIC Guideline for CYP3A5 and Tacrolimus (2022)",
