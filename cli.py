@@ -5,6 +5,7 @@ import argparse
 import csv
 import sys
 from pathlib import Path
+import math
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger
@@ -22,6 +23,23 @@ def _validate_input_path(filepath: str) -> Path:
     if path.suffix.lower() not in ('.csv', '.json'):
         raise ValueError(f"Unsupported file type '{path.suffix}'. Expected .csv or .json")
     return path
+
+
+def _csv_bool(value: str) -> bool:
+    """Parse a CSV boolean explicitly rather than using bool("False")."""
+    normalized = str(value).strip().lower()
+    if normalized in ("1", "true", "yes", "y", "on"):
+        return True
+    if normalized in ("0", "false", "no", "n", "off", ""):
+        return False
+    raise ValueError(f"Invalid boolean value: {value!r}")
+
+
+def _csv_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("Metrics must be finite numbers")
+    return parsed
 
 
 def main(argv=None):
@@ -104,10 +122,10 @@ def main(argv=None):
             payload = SystemTaskPayload(
                 task_id=r.get("task_id", "TASK-01"),
                 target_identifier=r.get("target_identifier", "TARGET-01"),
-                primary_metric=float(r.get("primary_metric", 15.0)),
-                secondary_metric=float(r.get("secondary_metric", 5.0)),
+                primary_metric=_csv_float(r.get("primary_metric", 15.0)),
+                secondary_metric=_csv_float(r.get("secondary_metric", 5.0)),
                 status_descriptor=r.get("status_descriptor", "NOMINAL"),
-                is_critical_flag=bool(r.get("is_critical_flag", False)),
+                is_critical_flag=_csv_bool(r.get("is_critical_flag", False)),
             )
             dossier = supervisor.process_task(payload)
             row_dict = dict(r)
