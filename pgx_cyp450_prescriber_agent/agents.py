@@ -93,7 +93,7 @@ class PGxCoordinator:
             "stat_critical_alerts": stat_count,
             "warning_alerts": warn_count,
             "alerts": [a.to_dict() for a in all_alerts],
-            "guideline_standard": "CPIC Level A Gene-Drug Guidelines",
+            "guideline_standard": "Synthetic metric demo (no validated guideline)",
             "consensus_summary": f"Multi-agent supervision completed across 3 sub-agents with status [{status.value}].",
         }
 
