@@ -1,236 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pgx Cyp450 Prescriber Engine — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Local educational CYP2D6 and CYP2C19 diplotype-to-phenotype demonstration. Not for prescribing.">
+<title>PGx CYP450 | Diplotype Explorer</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark;background:#0b1220;color:#edf2f8}
+*{box-sizing:border-box}body{margin:0;padding:2rem 1rem;line-height:1.55}
+main{max-width:900px;margin:0 auto}a{color:#9cc9ff}a:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #86baff;outline-offset:3px}
+header{margin-bottom:1.25rem}h1{font-size:clamp(1.65rem,4vw,2.4rem);line-height:1.2;margin:.3rem 0}h2{font-size:1.1rem;margin:0 0 1rem}
+p{margin:.6rem 0}small,.muted{color:#abbdd1}strong{color:#fff}
+.label{display:block;margin-bottom:.4rem;font-weight:600;font-size:.92rem}
+.card{background:#152237;border:1px solid #33465b;border-radius:15px;padding:1.5rem;margin-bottom:1rem}
+.notice{border-left:4px solid #ffcc85;background:#382d22;padding:1rem 1.1rem;border-radius:8px;margin:1rem 0 1.4rem}
+.formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+select{width:100%;min-height:45px;padding:.65rem .7rem;border-radius:8px;border:1px solid #7790a9;background:#0b1727;color:white;font:inherit}
+button{font:inherit;font-weight:700;background:#85b9fc;color:#101b2e;border:0;border-radius:9px;padding:.7rem 1.2rem;cursor:pointer;margin-top:1.2rem}
+button:hover{background:#b3d3ff}
+.resultgrid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.datum{background:#101c2e;border-radius:9px;padding:.8rem 1rem}.datum p{font-size:1.4rem;font-weight:700;margin:.1rem 0}
+footer{border-top:1px solid #33465b;padding-top:1rem;margin-top:1.5rem;font-size:.9rem}
+@media(max-width:650px){body{padding:1rem .7rem}.formgrid,.resultgrid{grid-template-columns:1fr}.card{padding:1.1rem}}
+</style>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>Pgx Cyp450 Prescriber Engine</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
-        </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
-        </div>
-    </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
-        </div>
-    </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// Pgx Cyp450 Prescriber Engine Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
-    </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "pgx-cyp450-prescriber-engine",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
+<main>
+<header>
+<p class="muted">PHARMACOGENOMICS / EDUCATIONAL DEMONSTRATION</p>
+<h1>PGx CYP450 Diplotype Explorer</h1>
+<p class="muted">Illustrative phenotype translation for a limited set of CYP2D6 and CYP2C19 star alleles.</p>
+</header>
+<div class="notice" role="note">
+<strong>Not a prescribing tool.</strong> This demonstration does not determine drug safety, dosage, therapeutic alternatives, or clinical risk.
+Real results require verified genotyping, copy-number assessment where relevant, possible phenoconversion assessment, and up-to-date drug-specific guidelines.
+Do not enter patient information.
+</div>
+<section class="card" aria-labelledby="input-heading">
+<h2 id="input-heading">Select a synthetic diplotype</h2>
+<form id="panel-form">
+<div class="formgrid">
+<div><label class="label" for="gene">Gene</label><select id="gene" name="gene"><option value="CYP2D6">CYP2D6</option><option value="CYP2C19">CYP2C19</option></select></div>
+<div><label class="label" for="allele1">Allele 1</label><select id="allele1" name="allele1"></select></div>
+<div><label class="label" for="allele2">Allele 2</label><select id="allele2" name="allele2"></select></div>
+</div>
+<button type="submit">Interpret diplotype</button>
+</form>
+</section>
+<section class="card" aria-labelledby="result-heading">
+<h2 id="result-heading">Illustrative interpretation</h2>
+<div id="result" aria-live="polite" aria-atomic="true">
+<p class="muted">Choose alleles to calculate a phenotype.</p>
+</div>
+</section>
+<section class="card" aria-labelledby="limits-heading">
+<h2 id="limits-heading">What the demonstration excludes</h2>
+<p>Unsupported star alleles, CYP2D6 copy-number variation and hybrid alleles, phase ambiguity, assay coverage, drug-mediated enzyme inhibition/induction (phenoconversion), and genotype-to-phenotype rules for CYP2C9, CYP3A5 and SLCO1B1.</p>
+<p>A phenotype is <strong>not</strong> a drug-specific recommendation. This site uses a static local ruleset, not an automatically updated CPIC database.</p>
+</section>
+<footer>
+<p><strong>Source references:</strong> <a href="https://cpicpgx.org/gene/CYP2D6/" rel="noopener noreferrer" target="_blank">CPIC CYP2D6</a> · <a href="https://cpicpgx.org/gene/CYP2C19/" rel="noopener noreferrer" target="_blank">CPIC CYP2C19</a>. Consult the current CPIC diplotype tables before any clinical use.</p>
+<p>Calculation runs in your browser. This page submits no forms to a server and stores no patient information.</p>
+</footer>
+</main>
+<script>
+"use strict";
+const alleles = {
+  CYP2D6: {"*1":1,"*2":1,"*3":0,"*4":0,"*5":0,"*6":0,"*10":0.25,"*17":0.5,"*41":0.5},
+  CYP2C19: {"*1":"normal","*2":"none","*3":"none","*4":"none","*8":"none","*17":"increased"}
+};
+const gene = document.getElementById("gene");
+const a1 = document.getElementById("allele1");
+const a2 = document.getElementById("allele2");
+const result = document.getElementById("result");
+function updateAlleles() {
+  const values = Object.keys(alleles[gene.value]);
+  [a1,a2].forEach((select,index) => {
+    const previous = select.value;
+    select.replaceChildren();
+    values.forEach(value => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    });
+    select.value = values.includes(previous) ? previous : (index === 0 ? "*1" : "*4");
+    if (!select.value) select.selectedIndex = 0;
+  });
+  result.replaceChildren();
+  const p = document.createElement("p");
+  p.className = "muted";
+  p.textContent = "Select alleles and interpret.";
+  result.appendChild(p);
+}
+function interpret(g, first, second) {
+  const map = alleles[g];
+  if (!Object.hasOwn(map,first) || !Object.hasOwn(map,second)) return null;
+  if (g === "CYP2D6") {
+    const score = map[first] + map[second];
+    return { phenotype: score === 0 ? "Poor metabolizer (PM)" : score < 1.25 ? "Intermediate metabolizer (IM)" : score <= 2.25 ? "Normal metabolizer (NM)" : "Ultrarapid metabolizer (UM)", score: String(score) };
+  }
+  const f = [map[first],map[second]];
+  let phenotype = "Indeterminate";
+  const none = f.filter(x => x === "none").length;
+  const increased = f.filter(x => x === "increased").length;
+  const normal = f.filter(x => x === "normal").length;
+  if (none === 2) phenotype = "Poor metabolizer (PM)";
+  else if (none === 1) phenotype = "Intermediate metabolizer (IM)";
+  else if (increased === 2) phenotype = "Ultrarapid metabolizer (UM)";
+  else if (increased === 1 && normal === 1) phenotype = "Rapid metabolizer (RM)";
+  else if (normal === 2) phenotype = "Normal metabolizer (NM)";
+  return {phenotype,score:"Not applicable (function-based translation)"};
+}
+document.getElementById("panel-form").addEventListener("submit",event => {
+  event.preventDefault();
+  const value = interpret(gene.value,a1.value,a2.value);
+  result.replaceChildren();
+  if (!value) {
+    result.textContent = "Unsupported combination; no phenotype assigned.";
+    return;
+  }
+  const grid = document.createElement("div");
+  grid.className = "resultgrid";
+  for (const [label, text] of [["Diplotype",gene.value+" "+a1.value+"/"+a2.value],["Predicted phenotype",value.phenotype],["Activity score",value.score]]) {
+    const block = document.createElement("div");block.className="datum";
+    const cap = document.createElement("small");cap.textContent=label;
+    const val = document.createElement("p");val.textContent=text;
+    block.append(cap,val);grid.appendChild(block);
+  }
+  const note = document.createElement("p");
+  note.textContent = "Limited illustrative interpretation only; no medication dosing or safety assessment is performed.";
+  result.append(grid,note);
+});
+gene.addEventListener("change",updateAlleles);
+updateAlleles();
+</script>
 </body>
 </html>
