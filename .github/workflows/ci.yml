@@ -41,6 +41,14 @@ jobs:
           Path("/tmp/pgx-browser.js").write_text(scripts[0], encoding="utf-8")
           PY
           node --check /tmp/pgx-browser.js
+          node tests/browser_smoke.js
+      - name: Run CLI and API smoke checks
+        run: |
+          python cli.py audit --task-id CI-SYN-001 --target SYN-001 --primary 12 --secondary 3
+          python -m pgx_cyp450_prescriber_agent.cli audit --case-id CI-SYN-002 --primary 12 --secondary 3
+      - name: Build Docker image
+        if: matrix.python-version == '3.12'
+        run: docker build -t pgx-demo:ci .
       - name: Check dependency vulnerabilities
         if: matrix.python-version == '3.12'
         run: |
