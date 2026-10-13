@@ -11,7 +11,7 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Pgx Cyp450 Prescriber Agent API",
-    description="Enterprise Distributed Component Platform (AI Drug Discovery, Structural Biology & Wet-Lab Robotics)",
+    description="Synthetic metric-audit demonstration. Not a pharmacogenomic interpretation or prescribing service.",
     version="3.0.0-ENTERPRISE",
 )
 
@@ -22,7 +22,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "pgx-cyp450-prescriber-agent", "domain": "AI Drug Discovery, Structural Biology & Wet-Lab Robotics", "standard": "wwPDB / IUPAC / OpenSMILES / ISAC Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "pgx-cyp450-prescriber-agent", "mode": "synthetic_metric_demo", "clinical_use": False, "version": "3.0.0-ENTERPRISE"}
 
 
 @app.get("/metrics")
