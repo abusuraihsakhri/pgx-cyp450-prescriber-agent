@@ -50,7 +50,7 @@ class GeneResult:
     diplotype: str  # e.g., "*1/*4"
     allele_1: StarAllele
     allele_2: StarAllele
-    activity_score: float
+    activity_score: Optional[float]
     phenotype: MetabolizerPhenotype
     phenotype_detail: str
     confidence: str  # HIGH, MODERATE, LOW
@@ -105,17 +105,16 @@ class AlleleFunctionDatabase:
             "*4": StarAllele("*4", "CYP2D6", StarAlleleFunction.NO_FUNCTION, 0.0, 0.20, "Splice defect; most common PM allele in Europeans"),
             "*5": StarAllele("*5", "CYP2D6", StarAlleleFunction.NO_FUNCTION, 0.0, 0.04, "Gene deletion"),
             "*6": StarAllele("*6", "CYP2D6", StarAlleleFunction.NO_FUNCTION, 0.0, 0.01, "Frameshift; no enzyme activity"),
-            "*10": StarAllele("*10", "CYP2D6", StarAlleleFunction.DECREASED_FUNCTION, 0.5, 0.04, "Unstable protein; common in East Asians"),
+            "*10": StarAllele("*10", "CYP2D6", StarAlleleFunction.DECREASED_FUNCTION, 0.25, 0.04, "Unstable protein; common in East Asians"),
             "*17": StarAllele("*17", "CYP2D6", StarAlleleFunction.DECREASED_FUNCTION, 0.5, 0.04, "Decreased affinity for substrates"),
             "*41": StarAllele("*41", "CYP2D6", StarAlleleFunction.DECREASED_FUNCTION, 0.5, 0.09, "Splice defect; reduced expression"),
-            "*xN": StarAllele("*xN", "CYP2D6", StarAlleleFunction.INCREASED_FUNCTION, 2.0, 0.02, "Gene duplication; ultrarapid metabolism"),
         },
         "CYP2C19": {
             "*1": StarAllele("*1", "CYP2C19", StarAlleleFunction.NORMAL_FUNCTION, 1.0, 0.60, "Wild-type normal function"),
             "*2": StarAllele("*2", "CYP2C19", StarAlleleFunction.NO_FUNCTION, 0.0, 0.15, "Splice defect; most common loss-of-function allele"),
             "*3": StarAllele("*3", "CYP2C19", StarAlleleFunction.NO_FUNCTION, 0.0, 0.05, "Premature stop codon; common in East Asians"),
             "*4": StarAllele("*4", "CYP2C19", StarAlleleFunction.NO_FUNCTION, 0.0, 0.01, "Initiation codon variant"),
-            "*8": StarAllele("*8", "CYP2C19", StarAlleleFunction.DECREASED_FUNCTION, 0.5, 0.01, "Decreased enzyme activity"),
+            "*8": StarAllele("*8", "CYP2C19", StarAlleleFunction.NO_FUNCTION, 0.0, 0.01, "Decreased enzyme activity"),
             "*17": StarAllele("*17", "CYP2C19", StarAlleleFunction.INCREASED_FUNCTION, 2.0, 0.21, "Increased transcription; ultrarapid metabolism"),
         },
         "CYP2C9": {
@@ -157,19 +156,6 @@ class PanelInterpreter:
     Processes diplotypes for multiple genes and generates combined interpretation.
     """
 
-    # Activity score to phenotype mapping per CPIC
-    PHENOTYPE_MAP = {
-        0.0: MetabolizerPhenotype.POOR,
-        0.25: MetabolizerPhenotype.INTERMEDIATE,
-        0.5: MetabolizerPhenotype.INTERMEDIATE,
-        1.0: MetabolizerPhenotype.INTERMEDIATE,
-        1.25: MetabolizerPhenotype.NORMAL,
-        1.5: MetabolizerPhenotype.NORMAL,
-        2.0: MetabolizerPhenotype.NORMAL,
-        2.5: MetabolizerPhenotype.RAPID,
-        3.0: MetabolizerPhenotype.ULTRARAPID,
-    }
-
     # Gene-drug associations
     GENE_DRUG_MAP = {
         "CYP2D6": ["codeine", "tramadol", "tamoxifen", "amitriptyline", "nortriptyline", "fluoxetine", "paroxetine", "metoprolol", "ondansetron"],
@@ -194,41 +180,37 @@ class PanelInterpreter:
         Returns:
             GeneResult with phenotype interpretation, or None if alleles not found
         """
+        gene = gene.upper().strip()
+        allele_1_name = allele_1_name.strip()
+        allele_2_name = allele_2_name.strip()
         a1 = self.db.get_allele(gene, allele_1_name)
         a2 = self.db.get_allele(gene, allele_2_name)
-
         if a1 is None or a2 is None:
             return None
 
-        activity_score = a1.activity_score + a2.activity_score
-
-        # Map activity score to phenotype
-        phenotype = self._score_to_phenotype(activity_score)
-
-        # Determine confidence
-        confidence = "HIGH"
-        if a1.function == StarAlleleFunction.UNKNOWN or a2.function == StarAlleleFunction.UNKNOWN:
-            confidence = "LOW"
-        elif a1.function == StarAlleleFunction.DECREASED_FUNCTION or a2.function == StarAlleleFunction.DECREASED_FUNCTION:
-            confidence = "MODERATE"
-
-        # Get affected drugs
-        affected_drugs = self.GENE_DRUG_MAP.get(gene.upper(), [])
-
-        # Generate clinical significance
-        significance = self._generate_significance(gene, phenotype, activity_score)
-
+        # Only CYP2D6 has a validated additive activity-score convention here.
+        # Other CYPs and transporters require gene-specific translation tables.
+        activity_score = a1.activity_score + a2.activity_score if gene == "CYP2D6" else None
+        phenotype = self._interpret_gene(gene, a1, a2, activity_score)
+        confidence = "LOW" if phenotype == MetabolizerPhenotype.INDETERMINATE else (
+            "MODERATE" if StarAlleleFunction.DECREASED_FUNCTION in (a1.function, a2.function) else "HIGH"
+        )
+        detail = (
+            f"{phenotype.value} (CYP2D6 activity score: {activity_score:g})"
+            if activity_score is not None else
+            f"{phenotype.value} (gene-specific function classification; no additive activity score)"
+        )
         return GeneResult(
-            gene=gene.upper(),
+            gene=gene,
             diplotype=f"{allele_1_name}/{allele_2_name}",
             allele_1=a1,
             allele_2=a2,
             activity_score=activity_score,
             phenotype=phenotype,
-            phenotype_detail=f"{phenotype.value} (Activity Score: {activity_score:.1f})",
+            phenotype_detail=detail,
             confidence=confidence,
-            affected_drugs=affected_drugs,
-            clinical_significance=significance,
+            affected_drugs=list(self.GENE_DRUG_MAP.get(gene, [])),
+            clinical_significance=self._generate_significance(gene, phenotype, activity_score),
         )
 
     def interpret_panel(
@@ -245,30 +227,52 @@ class PanelInterpreter:
         Returns:
             PanelInterpretation with combined results
         """
+        # This is a limited, educational interaction flagger. It must never
+        # extrapolate from phenotype alone to a prescribing instruction.
+        from .drug_gene_alert_engine import DrugGeneInteractionDatabase, MetabolizerStatus
+        interactions = DrugGeneInteractionDatabase()
+        phenotype_codes = {
+            MetabolizerPhenotype.POOR: MetabolizerStatus.POOR,
+            MetabolizerPhenotype.INTERMEDIATE: MetabolizerStatus.INTERMEDIATE,
+            MetabolizerPhenotype.NORMAL: MetabolizerStatus.NORMAL,
+            MetabolizerPhenotype.RAPID: MetabolizerStatus.RAPID,
+            MetabolizerPhenotype.ULTRARAPID: MetabolizerStatus.ULTRARAPID,
+        }
         gene_results = {}
         combined_alerts = []
         overall_confidence = "HIGH"
 
         for gene, (a1, a2) in panel.items():
             result = self.interpret_diplotype(gene, a1, a2)
-            if result:
-                gene_results[gene.upper()] = result
-                if result.confidence == "LOW":
-                    overall_confidence = "LOW"
-                elif result.confidence == "MODERATE" and overall_confidence != "LOW":
-                    overall_confidence = "MODERATE"
+            if result is None:
+                overall_confidence = "LOW"
+                combined_alerts.append({
+                    "gene": str(gene).upper(),
+                    "severity": "REVIEW",
+                    "message": "Unsupported allele or gene; phenotype was not assigned.",
+                })
+                continue
+            gene_results[result.gene] = result
+            if result.confidence == "LOW":
+                overall_confidence = "LOW"
+            elif result.confidence == "MODERATE" and overall_confidence != "LOW":
+                overall_confidence = "MODERATE"
 
-                # Generate alerts for actionable phenotypes
-                if result.phenotype in [MetabolizerPhenotype.POOR, MetabolizerPhenotype.ULTRARAPID]:
-                    for drug in result.affected_drugs:
-                        combined_alerts.append({
-                            "alert_id": str(uuid.uuid4())[:8],
-                            "gene": gene.upper(),
-                            "drug": drug,
-                            "phenotype": result.phenotype.value,
-                            "severity": "CRITICAL" if result.phenotype == MetabolizerPhenotype.POOR else "WARNING",
-                            "message": f"{gene.upper()} {result.phenotype.value}: {result.clinical_significance}",
-                        })
+            status = phenotype_codes.get(result.phenotype)
+            if result.gene not in ("CYP2D6", "CYP2C19") or status is None:
+                continue
+            for drug in result.affected_drugs:
+                for interaction in interactions.lookup_by_drug(drug):
+                    if interaction.gene != result.gene or status not in interaction.affected_phenotypes:
+                        continue
+                    combined_alerts.append({
+                        "alert_id": str(uuid.uuid4())[:8],
+                        "gene": result.gene,
+                        "drug": drug,
+                        "phenotype": result.phenotype.value,
+                        "severity": "REVIEW",
+                        "message": "Potential gene-drug interaction: verify the latest gene-drug-specific guideline with a qualified clinician. No dose is determined.",
+                    })
 
         genes_tested = list(gene_results.keys())
         summary = self._generate_panel_summary(gene_results)
@@ -282,40 +286,59 @@ class PanelInterpreter:
             summary=summary,
         )
 
-    def _score_to_phenotype(self, score: float) -> MetabolizerPhenotype:
-        """Map activity score to metabolizer phenotype."""
-        if score <= 0.0:
-            return MetabolizerPhenotype.POOR
-        elif score <= 1.0:
-            return MetabolizerPhenotype.INTERMEDIATE
-        elif score <= 2.0:
-            return MetabolizerPhenotype.NORMAL
-        elif score <= 2.5:
-            return MetabolizerPhenotype.RAPID
-        else:
+    @staticmethod
+    def _interpret_gene(
+        gene: str, a1: StarAllele, a2: StarAllele, score: Optional[float],
+    ) -> MetabolizerPhenotype:
+        if gene == "CYP2D6":
+            if score == 0:
+                return MetabolizerPhenotype.POOR
+            if score < 1.25:
+                return MetabolizerPhenotype.INTERMEDIATE
+            if score <= 2.25:
+                return MetabolizerPhenotype.NORMAL
             return MetabolizerPhenotype.ULTRARAPID
+        if gene == "CYP2C19":
+            functions = (a1.function, a2.function)
+            no = functions.count(StarAlleleFunction.NO_FUNCTION)
+            increased = functions.count(StarAlleleFunction.INCREASED_FUNCTION)
+            normal = functions.count(StarAlleleFunction.NORMAL_FUNCTION)
+            if no == 2:
+                return MetabolizerPhenotype.POOR
+            if no == 1:
+                return MetabolizerPhenotype.INTERMEDIATE
+            if increased == 2:
+                return MetabolizerPhenotype.ULTRARAPID
+            if increased == 1 and normal == 1:
+                return MetabolizerPhenotype.RAPID
+            if normal == 2:
+                return MetabolizerPhenotype.NORMAL
+        # CYP2C9, CYP3A5 and SLCO1B1 do not share CYP2D6
+        # metabolizer-score thresholds; fail closed instead of misclassifying.
+        return MetabolizerPhenotype.INDETERMINATE
 
     @staticmethod
-    def _generate_significance(gene: str, phenotype: MetabolizerPhenotype, score: float) -> str:
-        """Generate clinical significance text."""
-        if phenotype == MetabolizerPhenotype.POOR:
-            return f"{gene} poor metabolizer (AS={score:.1f}): Significantly altered drug metabolism. Alternative therapy or dose adjustment required per CPIC guidelines."
-        elif phenotype == MetabolizerPhenotype.INTERMEDIATE:
-            return f"{gene} intermediate metabolizer (AS={score:.1f}): Moderately altered metabolism. Consider dose adjustment or monitoring."
-        elif phenotype == MetabolizerPhenotype.NORMAL:
-            return f"{gene} normal metabolizer (AS={score:.1f}): Standard drug metabolism expected."
-        elif phenotype == MetabolizerPhenotype.RAPID:
-            return f"{gene} rapid metabolizer (AS={score:.1f}): Increased metabolism. May require dose increase for prodrugs."
-        elif phenotype == MetabolizerPhenotype.ULTRARAPID:
-            return f"{gene} ultrarapid metabolizer (AS={score:.1f}): Markedly increased metabolism. Prodrug toxicity risk or reduced efficacy of active drugs."
-        return f"{gene}: Indeterminate phenotype (AS={score:.1f})"
+    def _generate_significance(
+        gene: str, phenotype: MetabolizerPhenotype, score: Optional[float],
+    ) -> str:
+        if phenotype == MetabolizerPhenotype.INDETERMINATE:
+            return (
+                f"{gene}: No validated translation implemented for this diplotype. "
+                "Consult a current gene-specific interpretation; do not infer dosing."
+            )
+        return (
+            f"{gene} predicted {phenotype.value} phenotype. "
+            "Interpretation is limited to the listed alleles and does not account "
+            "for structural variation, phenoconversion, or laboratory assay limitations. "
+            "Confirm any gene-drug prescribing action against current guidance."
+        )
 
     @staticmethod
     def _generate_panel_summary(gene_results: Dict[str, GeneResult]) -> str:
         """Generate a human-readable panel summary."""
         lines = ["Pharmacogenomic Panel Interpretation Summary", "=" * 50]
         for gene, result in gene_results.items():
-            lines.append(f"  {gene}: {result.diplotype} -> {result.phenotype.value} (AS={result.activity_score:.1f})")
-            if result.phenotype in [MetabolizerPhenotype.POOR, MetabolizerPhenotype.ULTRARAPID]:
-                lines.append(f"    ⚠ ACTIONABLE: {result.clinical_significance}")
+            lines.append(f"  {gene}: {result.diplotype} -> {result.phenotype.value}" + (f" (AS={result.activity_score:g})" if result.activity_score is not None else " (score not applicable)"))
+            if result.phenotype == MetabolizerPhenotype.INDETERMINATE:
+                lines.append(f"    REVIEW REQUIRED: {result.clinical_significance}")
         return "\n".join(lines)
