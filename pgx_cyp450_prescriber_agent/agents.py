@@ -93,7 +93,7 @@ class PGxCoordinator:
             "stat_critical_alerts": stat_count,
             "warning_alerts": warn_count,
             "alerts": [a.to_dict() for a in all_alerts],
-            "guideline_standard": "CPIC Level A Gene-Drug Guidelines",
+            "guideline_standard": "Synthetic metric demo (no validated guideline)",
             "consensus_summary": f"Multi-agent supervision completed across 3 sub-agents with status [{status.value}].",
         }
 
@@ -105,6 +105,6 @@ class PGxCoordinator:
         if "status" in q or "summary" in q:
             return f"PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent currently tracking {len(self.case_registry)} cases in on-premises memory."
         elif "guideline" in q or "standard" in q:
-            return "Active clinical surveillance operates under CPIC Level A Gene-Drug Guidelines validated protocols."
+            return "This is an educational demonstration, not validated clinical surveillance. Consult the current drug-specific guideline."
         else:
-            return f"PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent executive agent online. Zero-PHI air-gapped monitoring active."
+            return "Educational demonstration active; no clinical monitoring, zero-PHI certification, or prescribing recommendation is provided."

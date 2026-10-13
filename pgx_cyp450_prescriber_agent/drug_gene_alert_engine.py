@@ -108,7 +108,7 @@ class DrugGeneInteractionDatabase:
                 affected_phenotypes=[MetabolizerStatus.POOR, MetabolizerStatus.ULTRARAPID],
                 clinical_implication="PM: No analgesic effect; UM: Risk of toxicity (respiratory depression)",
                 recommended_action="PM: Use alternative analgesic; UM: Use non-codeine opioid or non-opioid",
-                alternative_drugs=["morphine", "oxycodone", "acetaminophen"],
+                alternative_drugs=["morphine", "acetaminophen"],
                 dose_adjustment="PM: No dose effective; UM: Avoid codeine entirely",
                 fda_table_ref="FDA Table - Codeine/CYP2D6",
                 evidence_sources=["CPIC 2019 Guideline", "FDA Contraindication"],
@@ -121,7 +121,7 @@ class DrugGeneInteractionDatabase:
                 clinical_implication="Decreased warfarin clearance; increased bleeding risk",
                 recommended_action="Consider lower starting dose; increase INR monitoring frequency",
                 alternative_drugs=["apixaban", "rivaroxaban", "edoxaban"],
-                dose_adjustment="Reduce dose by 25-50% for PM; 15-25% for IM",
+                dose_adjustment="No dose can be calculated from CYP2C9 phenotype alone; use a validated multigene algorithm and INR monitoring.",
                 fda_table_ref="FDA Table - Warfarin/CYP2C9+VKORC1",
                 evidence_sources=["CPIC 2017 Guideline", "FDA Label Update"],
             ),
@@ -133,7 +133,7 @@ class DrugGeneInteractionDatabase:
                 clinical_implication="Increased plasma concentration; elevated myopathy risk",
                 recommended_action="Prescribe lower dose (20mg) or use alternative statin",
                 alternative_drugs=["rosuvastatin", "pravastatin", "atorvastatin"],
-                dose_adjustment="Max 20mg/day for PM phenotype",
+                dose_adjustment="Use current SLCO1B1 function-based statin recommendations; CYP metabolizer labels do not apply.",
                 fda_table_ref="FDA Table - Simvastatin/SLCO1B1",
                 evidence_sources=["CPIC 2022 Guideline"],
             ),
@@ -145,7 +145,7 @@ class DrugGeneInteractionDatabase:
                 clinical_implication="PM: Elevated drug levels, increased side effects; UM: Subtherapeutic levels",
                 recommended_action="PM: Reduce dose 50% or use alternative; UM: Increase dose or use alternative",
                 alternative_drugs=["desipramine", "nortriptyline", "escitalopram"],
-                dose_adjustment="PM: 50% dose reduction; UM: 150% of standard dose",
+                dose_adjustment="Consult current CYP2D6/CYP2C19 tricyclic antidepressant guidance and drug monitoring.",
                 evidence_sources=["CPIC 2016 Guideline"],
             ),
             DrugGeneInteraction(
@@ -156,7 +156,7 @@ class DrugGeneInteractionDatabase:
                 clinical_implication="Expressers require higher doses to achieve target trough levels",
                 recommended_action="CYP3A5 expressers: 1.5-2x standard starting dose",
                 alternative_drugs=["cyclosporine", "sirolimus", "everolimus"],
-                dose_adjustment="Expressers: 0.2 mg/kg/day vs non-expressers: 0.1 mg/kg/day",
+                dose_adjustment="Consider genotype-guided initial dosing only within an appropriate protocol and therapeutic drug monitoring.",
                 evidence_sources=["CPIC 2022 Guideline"],
             ),
         ]
@@ -186,6 +186,19 @@ class DrugGeneAlertEngine:
         self.db = db or DrugGeneInteractionDatabase()
         self.alert_history: List[PrescribingAlert] = []
 
+    @staticmethod
+    def _normalise_phenotypes(
+        patient_phenotypes: Dict[str, MetabolizerStatus],
+    ) -> Dict[str, MetabolizerStatus]:
+        """Normalize gene names and validate enum/string phenotype codes."""
+        normalized = {}
+        for gene, value in patient_phenotypes.items():
+            normalized[str(gene).upper().strip()] = (
+                value if isinstance(value, MetabolizerStatus)
+                else MetabolizerStatus(str(value).upper().strip())
+            )
+        return normalized
+
     def check_prescription(
         self,
         drug_name: str,
@@ -203,6 +216,7 @@ class DrugGeneAlertEngine:
             List of PrescribingAlert objects for any matching interactions
         """
         alerts = []
+        patient_phenotypes = self._normalise_phenotypes(patient_phenotypes)
         interactions = self.db.lookup_by_drug(drug_name)
 
         for interaction in interactions:
@@ -256,7 +270,12 @@ class DrugGeneAlertEngine:
         drug_name: str,
         patient_phenotypes: Dict[str, MetabolizerStatus],
     ) -> List[str]:
-        """Get safe alternative drugs for a patient with given phenotypes."""
+        """Return candidate alternatives; NOT a safety or suitability assessment.
+
+        These static examples are not screened for comorbidities, other gene-drug
+        interactions, interactions with current therapy, or contraindications.
+        """
+        patient_phenotypes = self._normalise_phenotypes(patient_phenotypes)
         interactions = self.db.lookup_by_drug(drug_name)
         alternatives = set()
         for interaction in interactions:
@@ -290,7 +309,9 @@ class DrugGeneAlertEngine:
     def _determine_severity(interaction: DrugGeneInteraction, phenotype: MetabolizerStatus) -> AlertSeverity:
         """Determine alert severity based on interaction and phenotype."""
         if interaction.cpic_level == CPICLevel.LEVEL_A:
-            if phenotype == MetabolizerStatus.POOR or phenotype == MetabolizerStatus.ULTRARAPID:
+            # A phenotype alone cannot establish a clinical emergency.
+            # Only this specific well-known toxicity scenario is distinguished.
+            if interaction.drug_name == "codeine" and phenotype == MetabolizerStatus.ULTRARAPID:
                 return AlertSeverity.CRITICAL
             return AlertSeverity.WARNING
         elif interaction.cpic_level == CPICLevel.LEVEL_B:

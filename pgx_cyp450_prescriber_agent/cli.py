@@ -5,10 +5,27 @@ import argparse
 import csv
 import json
 import sys
+import math
 from .models import ClinicalCasePayload
 from .agents import PGxCoordinator
 
 coordinator = PGxCoordinator()
+
+
+def _csv_bool(value: str) -> bool:
+    normalized = str(value).strip().lower()
+    if normalized in ("1", "true", "yes", "y", "on"):
+        return True
+    if normalized in ("0", "false", "no", "n", "off", ""):
+        return False
+    raise ValueError(f"Invalid boolean value: {value!r}")
+
+
+def _csv_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("Metrics must be finite numbers")
+    return parsed
 
 
 def main(argv=None):
@@ -79,10 +96,10 @@ def main(argv=None):
             case = ClinicalCasePayload(
                 case_id=r.get("case_id", "CASE-01"),
                 patient_synthetic_id=r.get("patient_synthetic_id", "SYNTH-01"),
-                primary_metric=float(r.get("metric_primary", r.get("primary_metric", 15.0))),
-                secondary_metric=float(r.get("metric_secondary", r.get("secondary_metric", 5.0))),
+                primary_metric=_csv_float(r.get("metric_primary", r.get("primary_metric", 15.0))),
+                secondary_metric=_csv_float(r.get("metric_secondary", r.get("secondary_metric", 5.0))),
                 status_flag=r.get("status_flag", r.get("status_text", "NORMAL")),
-                is_stat=bool(r.get("is_stat", r.get("critical_flag", False))),
+                is_stat=_csv_bool(r.get("is_stat", r.get("critical_flag", False))),
             )
             dossier = coordinator.process_case(case)
             row_dict = dict(r)

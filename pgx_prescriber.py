@@ -12,10 +12,20 @@ import argparse
 import csv
 import datetime
 import json
+import math
 import sys
 import uuid
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+
+def _csv_bool(value: Any) -> bool:
+    normalized = str(value).strip().lower()
+    if normalized in ("1", "true", "yes", "y", "on"):
+        return True
+    if normalized in ("0", "false", "no", "n", "off", ""):
+        return False
+    raise ValueError(f"Invalid boolean value: {value!r}")
 
 
 class Severity(str):
@@ -33,8 +43,8 @@ class Severity(str):
 class DomainKnowledgeRegistry:
     """Enterprise domain rules, guideline matrices, and evidence benchmarks."""
     SYSTEM_VERSION = "2.0.0-PRO-CLINICAL"
-    ZERO_PHI_COMPLIANCE = True
-    HIPAA_SAFE_HARBOR = "ACTIVE_ON_PREMISES"
+    ZERO_PHI_COMPLIANCE = False
+    HIPAA_SAFE_HARBOR = "NOT_VALIDATED"
 
     @staticmethod
     def audit_security_and_integrity(payload: Dict[str, Any]) -> List[str]:
@@ -71,6 +81,8 @@ class StarAlleleDiplotyperAgent:
     def evaluate(self, payload: Dict[str, Any]) -> List[AgentAlert]:
         alerts = []
         val1 = float(payload.get("metric_primary", 15.0))
+        if not math.isfinite(val1):
+            raise ValueError("Primary metric must be finite")
         if val1 > 20.0:
             alerts.append(
                 AgentAlert(
@@ -89,8 +101,10 @@ class CPICDosingRuleEngineAgent:
     """Specialized Sub-Agent 2 for pgx-cyp450-prescriber-agent"""
     def evaluate(self, payload: Dict[str, Any]) -> List[AgentAlert]:
         alerts = []
-        is_critical = bool(payload.get("critical_flag", False))
+        is_critical = _csv_bool(payload.get("critical_flag", False))
         val2 = float(payload.get("metric_secondary", 5.0))
+        if not math.isfinite(val2):
+            raise ValueError("Secondary metric must be finite")
         if is_critical or val2 > 12.0:
             alerts.append(
                 AgentAlert(
@@ -166,9 +180,9 @@ class PGxCoordinator:
         if "summary" in q or "status" in q:
             return f"PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent currently tracking {len(self.case_registry)} cases in local air-gapped memory."
         elif "guidelines" in q or "protocol" in q:
-            return "All sub-agents operate under validated consensus clinical algorithms and CAP/CLSI/NCCN/WHO standards."
+            return "These demonstration rules are not validated clinical guidelines or standards."
         else:
-            return f"PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent executive agent online. Continuous supervisory monitoring active across all domain parameters."
+            return "Educational metric demonstration only; no live clinical monitoring or prescribing guidance."
 
 
 coordinator = PGxCoordinator()
