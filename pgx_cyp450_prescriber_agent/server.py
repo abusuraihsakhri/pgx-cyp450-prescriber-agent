@@ -14,7 +14,7 @@ def create_app():
 
         app = FastAPI(
             title="PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent",
-            description="Maps CYP2D6, CYP2C19, CYP2C9, and SLCO1B1 star alleles (*1-*4) to metabolizer phenotypes (PM, IM, NM, UM) and CPIC dosing changes.",
+            description="Legacy synthetic threshold-audit interface. Not validated to interpret PGx results or prescribe medications.",
             version="2.0.0-PRO",
         )
 
