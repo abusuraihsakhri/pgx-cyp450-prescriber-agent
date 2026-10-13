@@ -3,6 +3,7 @@ Supervisor Orchestrator & Operations Intelligence for Pgx Cyp450 Prescriber Agen
 Domain: AI Drug Discovery, Structural Biology & Wet-Lab Robotics
 """
 import uuid
+import json
 from typing import Dict, List
 from .base import AuditLogger, PHIGuard
 from .models import SystemTaskPayload, AgentAlert, ConsensusDossier, UrgencyLevel, SystemIntegrityStatus
@@ -25,6 +26,8 @@ class SystemSupervisor:
         PHIGuard.assert_no_phi(payload.task_id)
         PHIGuard.assert_no_phi(payload.target_identifier)
         PHIGuard.assert_no_phi(payload.status_descriptor)
+        PHIGuard.assert_no_phi(json.dumps(payload.model_dump(), ensure_ascii=False, default=str))
+        PHIGuard.assert_no_phi(actor)
 
         # Multi-worker evaluations
         all_alerts: List[AgentAlert] = []
