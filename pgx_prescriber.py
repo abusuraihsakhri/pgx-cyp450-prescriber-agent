@@ -43,8 +43,8 @@ class Severity(str):
 class DomainKnowledgeRegistry:
     """Enterprise domain rules, guideline matrices, and evidence benchmarks."""
     SYSTEM_VERSION = "2.0.0-PRO-CLINICAL"
-    ZERO_PHI_COMPLIANCE = True
-    HIPAA_SAFE_HARBOR = "ACTIVE_ON_PREMISES"
+    ZERO_PHI_COMPLIANCE = False
+    HIPAA_SAFE_HARBOR = "NOT_VALIDATED"
 
     @staticmethod
     def audit_security_and_integrity(payload: Dict[str, Any]) -> List[str]:
@@ -180,9 +180,9 @@ class PGxCoordinator:
         if "summary" in q or "status" in q:
             return f"PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent currently tracking {len(self.case_registry)} cases in local air-gapped memory."
         elif "guidelines" in q or "protocol" in q:
-            return "All sub-agents operate under validated consensus clinical algorithms and CAP/CLSI/NCCN/WHO standards."
+            return "These demonstration rules are not validated clinical guidelines or standards."
         else:
-            return f"PGx-Prescriber: CPIC Gene-Drug Guidelines & CYP450 Metabolizer Phenotype Agent executive agent online. Continuous supervisory monitoring active across all domain parameters."
+            return "Educational metric demonstration only; no live clinical monitoring or prescribing guidance."
 
 
 coordinator = PGxCoordinator()
