@@ -12,10 +12,20 @@ import argparse
 import csv
 import datetime
 import json
+import math
 import sys
 import uuid
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+
+def _csv_bool(value: Any) -> bool:
+    normalized = str(value).strip().lower()
+    if normalized in ("1", "true", "yes", "y", "on"):
+        return True
+    if normalized in ("0", "false", "no", "n", "off", ""):
+        return False
+    raise ValueError(f"Invalid boolean value: {value!r}")
 
 
 class Severity(str):
@@ -71,6 +81,8 @@ class StarAlleleDiplotyperAgent:
     def evaluate(self, payload: Dict[str, Any]) -> List[AgentAlert]:
         alerts = []
         val1 = float(payload.get("metric_primary", 15.0))
+        if not math.isfinite(val1):
+            raise ValueError("Primary metric must be finite")
         if val1 > 20.0:
             alerts.append(
                 AgentAlert(
@@ -89,8 +101,10 @@ class CPICDosingRuleEngineAgent:
     """Specialized Sub-Agent 2 for pgx-cyp450-prescriber-agent"""
     def evaluate(self, payload: Dict[str, Any]) -> List[AgentAlert]:
         alerts = []
-        is_critical = bool(payload.get("critical_flag", False))
+        is_critical = _csv_bool(payload.get("critical_flag", False))
         val2 = float(payload.get("metric_secondary", 5.0))
+        if not math.isfinite(val2):
+            raise ValueError("Secondary metric must be finite")
         if is_critical or val2 > 12.0:
             alerts.append(
                 AgentAlert(
