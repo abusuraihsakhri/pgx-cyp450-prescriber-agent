@@ -1,226 +1,78 @@
-# Pgx CYP450 Prescriber Agent
+# PGx CYP450 Prescriber Agent
 
-> **Domain:** Computational Pharmacogenomics & Clinical Decision Support
-> **Reference Guidelines:** CPIC (Clinical Pharmacogenetics Implementation Consortium), PharmGKB, FDA Table of Pharmacogenomic Biomarkers
+Educational pharmacogenomics tools and synthetic metric-auditing demonstrations. The project includes a small static diplotype explorer, Python panel interpretation, a drug–gene example database, and older compatible CLI/API demonstrations.
 
-<div align="center">
+**Clinical limitation:** This repository is **not validated for patient care, medication prescribing, dose calculation, or clinical triage**. Its curated guideline text is not automatically updated and must not substitute for current CPIC/DPWG recommendations, product labeling, clinical assessment, or institutional governance.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Browser demonstration
 
-</div>
+The standalone application is in [web/index.html](web/index.html). Open that file in a modern browser. It requires no server and does not transmit or persist input. The page supports **a limited set of CYP2D6 and CYP2C19 alleles**; it excludes structural variation and does not provide drug or dosage recommendations.
 
----
+A GitHub Pages deployment workflow is included, but a public live URL is not listed until Pages is enabled and the deployed application is verified. GitHub Pages hosts static files and cannot run the Python FastAPI endpoints. The browser demonstration therefore uses local JavaScript instead of loading Pyodide.
 
-## Overview
+## Python setup
 
-**Pgx CYP450 Prescriber Agent** is a clinical decision support platform implementing CPIC Gene-Drug Guidelines for CYP450 metabolizer phenotype interpretation and dosing recommendations. It maps star alleles to metabolizer phenotypes (PM, IM, NM, UM) and provides evidence-based dosing guidance.
-
----
-
-## Key Features
-
-### Core Analytical Engines
-
-- **StarAlleleDiplotyperAgent**: Evaluates primary metric thresholds for pharmacogenomic variant calling
-- **CPICDosingRuleEngineAgent**: Triggers safety interlocks based on critical flags and secondary parameters
-- **AlternativeMedicationAdvisorAgent**: Detects phenotypic discordance and recommends confirmatory testing
-
-### Enterprise Security
-
-- **Zero-PHI Outbound Interceptor**: AST and regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers
-- **Tamper-Evident HMAC-SHA256 Audit Trail**: Chained, cryptographically signed logs for every evaluation
-- **Input Path Validation**: Batch processing validates file existence and extension before processing
-
-### Infrastructure
-
-- **FastAPI REST API**: OpenAPI 3.1 endpoints for audit, chat, and metrics
-- **Prometheus Telemetry**: Operational metrics at `/metrics`
-- **Docker Support**: Containerized deployment with health checks
-- **CLI Interface**: Interactive and parameterized command-line access
-
----
-
-## Installation
+Python **3.10 or newer** is required.
 
 ```bash
-# Clone the repository
 git clone https://github.com/abusuraihsakhri/pgx-cyp450-prescriber-agent.git
 cd pgx-cyp450-prescriber-agent
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[server,test]"
+python -m pytest -q
 ```
 
----
+Windows PowerShell activation: `.venv\Scripts\Activate.ps1`.
 
-## Usage
+### Python phenotype examples
 
-### CLI Commands
+```python
+from pgx_cyp450_prescriber_agent.panel_interpreter import PanelInterpreter
 
-#### 1. Single Task Evaluation (Audit)
-```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
+interpreter = PanelInterpreter()
+result = interpreter.interpret_diplotype("CYP2D6", "*1", "*10")
+print(result.phenotype.value, result.activity_score)  # NM 1.25
+
+panel = interpreter.interpret_panel({
+    "CYP2D6": ("*4", "*4"),
+    "CYP2C19": ("*1", "*17"),
+})
+print(panel.to_dict())
 ```
 
-#### 2. Supervisory Chat
-```bash
-python cli.py chat "What is the system status?"
-```
+Only CYP2D6 uses an additive activity score in this implementation. CYP2C19 uses function-based phenotype translation; CYP2C9, CYP3A5, and SLCO1B1 deliberately return `INDETERMINATE` pending properly validated gene-specific implementations. Alleles not in the small curated subset return no phenotype. Do not enter real patient identifiers.
 
-#### 3. Batch CSV Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
+### Legacy synthetic metric demonstrations
 
-#### 4. Verify Audit Trail Integrity
+The existing metric-audit interfaces are retained for compatibility but **do not implement pharmacogenomic clinical rules**.
+
 ```bash
+python cli.py audit --task-id SYN-001 --target SYNTH-01 --primary 28.5
+python cli.py batch -i sample_platform.csv -o results.csv
 python cli.py verify-audit
-```
-
-#### 5. Launch REST API Server
-```bash
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### REST API Endpoints
+The top-level FastAPI interface at `http://127.0.0.1:8000` serves `/health`, `/metrics`, `/api/audit`, `/api/chat`, and `/api/audit/logs` for synthetic tasks. The separate `pgx_cyp450_prescriber_agent.cli` and `pgx_prescriber.py` programs remain available as legacy variants; `sample.csv` corresponds to the package CLI's field conventions. These interfaces should not be exposed to the public internet without authentication, rate limiting, and privacy review.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check and system metadata |
-| GET | `/metrics` | Prometheus operational metrics |
-| POST | `/api/audit` | Submit task for evaluation |
-| POST | `/api/chat` | Query supervisory assistant |
-| GET | `/api/audit/logs` | Retrieve and verify audit trail |
-
-### Docker Deployment
+## Docker
 
 ```bash
-docker build -t pgx-cyp450-prescriber-agent .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key pgx-cyp450-prescriber-agent
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+docker compose up --build
 ```
 
-Or using docker-compose:
+The audit key is required by Compose; there is no repository-provided default. Audit signatures are chained in **volatile process memory**, not durable storage. Reopening the service does not restore previous audit records. Never enter actual health information or assume regular-expression identifier filtering guarantees HIPAA compliance.
 
-```bash
-docker-compose up -d
-```
+## Tests, technology, privacy
 
----
-
-## Input Data Schema
-
-### Task Payload
-
-| Field | Type | Description | Required |
-|-------|------|-------------|----------|
-| `task_id` | string | Unique task/case identifier | Yes |
-| `target_identifier` | string | Entity or genomic target | Yes |
-| `primary_metric` | float | Primary measurement/score | Yes |
-| `secondary_metric` | float | Secondary kinetic/confidence score | No (default: 0.0) |
-| `status_descriptor` | string | Status code or phenotype descriptor | No (default: "NOMINAL") |
-| `is_critical_flag` | boolean | Emergency escalation trigger | No (default: false) |
-
-### Batch CSV Format
-
-```csv
-case_id,patient_synthetic_id,metric_primary,metric_secondary,is_stat,status_flag
-CASE-001,SYNTH-01,25.4,14.2,True,DISCORDANT
-CASE-002,SYNTH-02,12.0,4.1,False,NORMAL
-```
-
----
-
-## Security Configuration
-
-### Audit Secret Key
-
-The HMAC-SHA256 audit trail requires a secret key for cryptographic signing. Set the `AUDIT_SECRET_KEY` environment variable for persistent audit integrity across restarts:
-
-```bash
-export AUDIT_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
-```
-
-If not set, a random ephemeral key is generated (audit trail will not persist across restarts).
-
-### PHI Protection
-
-The Zero-PHI outbound guard automatically detects and blocks:
-- Medical Record Numbers (MRN)
-- Social Security Numbers (SSN)
-- Phone numbers
-- Email addresses
-- Date of birth patterns
-- Common patient name patterns
-
----
-
-## Testing
-
-```bash
-# Run full test suite
-pytest -v
-
-# Run with coverage
-pytest -v --cov=agents --cov-report=html
-
-# Run security-focused tests only
-pytest tests/test_security.py -v
-```
-
-### Test Coverage
-
-- **PHI Guard Enforcement**: Validates detection of SSN, MRN, phone, email patterns
-- **Worker Agents**: Tests threshold-based alert generation
-- **Supervisor Consensus**: Validates multi-worker evaluation and audit signing
-- **Audit Trail Integrity**: Tests cryptographic chain verification and tamper detection
-- **Input Validation**: Tests file path validation for batch processing
-
----
-
-## Project Structure
-
-```
-pgx-cyp450-prescriber-agent/
-├── agents/                    # Core enterprise module
-│   ├── __init__.py           # Package metadata
-│   ├── api.py                # FastAPI REST server
-│   ├── base.py               # Security, PHI guard, audit trail
-│   ├── learning.py           # Bayesian calibration engine
-│   ├── llm_factory.py        # LLM provider abstraction
-│   ├── metrics.py            # Prometheus metrics collector
-│   ├── models.py             # Pydantic data schemas
-│   ├── streamer.py           # WebSocket telemetry broadcaster
-│   ├── supervisor.py         # Master orchestrator
-│   └── workers.py            # Specialized domain workers
-├── tests/                    # Test suite
-│   ├── test_pgx_cyp450_prescriber_agent.py
-│   ├── test_pgx_prescriber.py
-│   ├── test_enrichment.py
-│   └── test_security.py
-├── cli.py                    # Command-line interface
-├── simulator.py              # High-throughput simulation
-├── enrichment.py             # Domain enrichment engines
-├── pgx_prescriber.py         # Standalone PGx module
-├── web/                      # Web interface
-├── Dockerfile                # Container build
-├── docker-compose.yml        # Container orchestration
-├── pyproject.toml            # Project metadata
-├── sample.csv                # Sample batch input
-├── sample_payload.json       # Sample API payload
-└── benchmark_dataset.json    # Golden benchmark test cases
-```
-
----
+- Python, Pydantic v2, FastAPI/Uvicorn, pytest; standalone HTML/CSS/JavaScript browser explorer.
+- CI checks Python 3.10–3.12, unit tests, JavaScript syntax, and dependency vulnerabilities.
+- HMAC-SHA256 provides in-process audit-chain tamper detection; it does not constitute a persistent, independently verified audit log.
+- Browser demonstration runs entirely locally: no CDN, cookies, tracking, uploads, accounts, or API calls. Tested browser compatibility depends on current standards-supporting desktop/mobile browsers; a full cross-browser device matrix has not been verified.
+- Source lists for formal clinical validation: [CPIC](https://cpicpgx.org/), [PharmGKB](https://www.pharmgkb.org/) and [PharmVar](https://www.pharmvar.org/). Always check current diplotype/function tables and drug-specific CPIC guidance.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
